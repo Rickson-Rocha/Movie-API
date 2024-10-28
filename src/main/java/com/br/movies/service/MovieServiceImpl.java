@@ -2,6 +2,8 @@ package com.br.movies.service;
 
 import com.br.movies.dto.MovieDto;
 import com.br.movies.entities.Movie;
+import com.br.movies.exceptions.FileEmptyException;
+import com.br.movies.exceptions.MovieNotFoundException;
 import com.br.movies.repositories.MovieRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -35,7 +37,7 @@ public class MovieServiceImpl implements MovieService {
     public MovieDto createMovie(MovieDto movieDto, MultipartFile file) throws IOException {
         //1. upload file
         if(Files.exists(Paths.get(path + File.separator + file.getOriginalFilename()))) {
-            throw  new RuntimeException("File already exists! Please choose a different filename");
+            throw  new FileEmptyException("File already exists! Please choose a different filename");
         }
        String uploadedFileName =  fileService.uploadFile(path,file);
 
@@ -76,7 +78,7 @@ public class MovieServiceImpl implements MovieService {
     @Override
     public MovieDto getMovie(Long movieId) {
         //1. check data in DB and if exists, fetch the data of given ID
-        Movie movie = movieRepository.findById(movieId).orElseThrow(() -> new RuntimeException("Movie not found"));
+        Movie movie = movieRepository.findById(movieId).orElseThrow(() -> new MovieNotFoundException("Movie not found! id: " + movieId));
 
         //2. generate poster url
         String posterUrl = baseUrl + "/files/"  + movie.getPoster();
@@ -127,7 +129,7 @@ public class MovieServiceImpl implements MovieService {
     @Override
     public MovieDto updateMovie(Long movieId, MovieDto movieDto, MultipartFile file) throws IOException {
         //1.check if movie object exists with given movieId
-        Movie movie = movieRepository.findById(movieId).orElseThrow(() -> new RuntimeException("Movie not found"));
+        Movie movie = movieRepository.findById(movieId).orElseThrow(() -> new MovieNotFoundException("Movie not found! id: " + movieId));
 
         //2.if file is null, do nothing
         // if file is not null, then delete existing file associated with the record,
