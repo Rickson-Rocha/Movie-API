@@ -2,6 +2,7 @@ package com.br.movies.controllers;
 
 
 import com.br.movies.dto.MovieDto;
+import com.br.movies.exceptions.FileEmptyException;
 import com.br.movies.service.MovieService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -24,6 +25,9 @@ public class MovieController {
     @PostMapping
     public ResponseEntity<MovieDto> createMovie(@RequestPart MultipartFile file,
                                                 @RequestPart("movieDto") String movieDtoJson) throws IOException {
+        if(file.isEmpty()){
+            throw  new FileEmptyException("File is empty! Please  send another file");
+        }
         MovieDto movieDto = convertToMovieDto(movieDtoJson);
 
         return new ResponseEntity<>(movieService.createMovie(movieDto, file), HttpStatus.CREATED);
