@@ -1,12 +1,17 @@
 package com.br.movies.service;
 
 import com.br.movies.dto.MovieDto;
+import com.br.movies.dto.MoviePageResponse;
 import com.br.movies.entities.Movie;
 import com.br.movies.exceptions.FileEmptyException;
 import com.br.movies.exceptions.MovieNotFoundException;
 import com.br.movies.repositories.MovieRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -25,21 +30,20 @@ public class MovieServiceImpl implements MovieService {
     private String path;
 
     @Value("${base.url}")
-    private  String baseUrl;
+    private String baseUrl;
 
     private final MovieRepository movieRepository;
 
     private final FileService fileService;
 
 
-
     @Override
     public MovieDto createMovie(MovieDto movieDto, MultipartFile file) throws IOException {
         //1. upload file
-        if(Files.exists(Paths.get(path + File.separator + file.getOriginalFilename()))) {
-            throw  new FileEmptyException("File already exists! Please choose a different filename");
+        if (Files.exists(Paths.get(path + File.separator + file.getOriginalFilename()))) {
+            throw new FileEmptyException("File already exists! Please choose a different filename");
         }
-       String uploadedFileName =  fileService.uploadFile(path,file);
+        String uploadedFileName = fileService.uploadFile(path, file);
 
         //2. set the value of field 'post' as filename
         movieDto.setPoster(uploadedFileName);
@@ -59,7 +63,7 @@ public class MovieServiceImpl implements MovieService {
         //4. save the movie object - > saved movie object
         Movie savedMovie = movieRepository.save(movie);
         //5. generated poster url
-        String posterUrl = baseUrl + "/files/"  + uploadedFileName;
+        String posterUrl = baseUrl + "/files/" + uploadedFileName;
 
         MovieDto response = new MovieDto(
                 savedMovie.getId(),
@@ -81,7 +85,7 @@ public class MovieServiceImpl implements MovieService {
         Movie movie = movieRepository.findById(movieId).orElseThrow(() -> new MovieNotFoundException("Movie not found! id: " + movieId));
 
         //2. generate poster url
-        String posterUrl = baseUrl + "/files/"  + movie.getPoster();
+        String posterUrl = baseUrl + "/files/" + movie.getPoster();
 
         //3. map to MovieDto object and return it
         MovieDto response = new MovieDto(
@@ -103,8 +107,8 @@ public class MovieServiceImpl implements MovieService {
         List<Movie> movies = movieRepository.findAll();
 
         List<MovieDto> movieDtos = new ArrayList<>();
-        for(Movie movie : movies) {
-            String posterUrl = baseUrl + "/files/"  + movie.getPoster();
+        for (Movie movie : movies) {
+            String posterUrl = baseUrl + "/files/" + movie.getPoster();
             MovieDto movieDto = new MovieDto(
                     movie.getId(),
                     movie.getTitle(),
@@ -122,7 +126,6 @@ public class MovieServiceImpl implements MovieService {
         // and map to MovieDto obj
 
 
-
         return movieDtos;
     }
 
@@ -135,14 +138,14 @@ public class MovieServiceImpl implements MovieService {
         // if file is not null, then delete existing file associated with the record,
         // and upload the new file
         String fileName = movie.getPoster();
-        if (file !=null){
+        if (file != null) {
             Files.deleteIfExists(Paths.get(path + File.separator + fileName));
-            fileName = fileService.uploadFile(path,file);
+            fileName = fileService.uploadFile(path, file);
         }
         //3.  set movieDto's poster value, according step 2
         movieDto.setPoster(fileName);
         //4. map it to movie Object
-        Movie movieSaved =  new Movie(
+        Movie movieSaved = new Movie(
                 movie.getId(),
                 movieDto.getTitle(),
                 movieDto.getDirectory(),
@@ -154,7 +157,7 @@ public class MovieServiceImpl implements MovieService {
         //5. save the movie object -> return saved object
         Movie updatedMovie = movieRepository.save(movieSaved);
         //6. generate postUrl for it
-        String posterUrl = baseUrl + "/files/"  + fileName;
+        String posterUrl = baseUrl + "/files/" + fileName;
 
         //7. map to MovieDto and return it
         MovieDto response = new MovieDto(
@@ -176,7 +179,7 @@ public class MovieServiceImpl implements MovieService {
 
         Files.deleteIfExists(Paths.get(path + File.separator + movie.getPoster()));
 
-        Movie movieSaved =  new Movie(
+        Movie movieSaved = new Movie(
 
                 movie.getId(),
                 movie.getTitle(),
@@ -189,7 +192,58 @@ public class MovieServiceImpl implements MovieService {
 
         movieRepository.delete(movieSaved);
 
-        return "Movie deleted id: "+movieSaved.getId();
+        return "Movie deleted id: " + movieSaved.getId();
 
     }
+
+    @Override
+    public MoviePageResponse getAllMovieWithPagination(Integer pageNumber, Integer pageSize) {
+        Pageable pageable = PageRequest.of(pageNumber, pageSize);
+        Page<Movie> moviePage = movieRepository.findAll(pageable);
+        List<Movie> movies = moviePage.getContent();
+
+        List<MovieDto> movieDtos = new ArrayList<>();
+        for (Movie movie : movies) {
+            String posterUrl = baseUrl + "/files/" + movie.getPoster();
+            MovieDto movieDto = new MovieDto(
+                    movie.getId(),
+                    movie.getTitle(),
+                    movie.getDirectory(),
+                    movie.getStudio(),
+                    movie.getMovieCast(),
+                    movie.getReleaseYear(),
+                    movie.getPoster(),
+                    posterUrl
+            );
+            movieDtos.add(movieDto);
+        }
+        return new MoviePageResponse(movieDtos, pageNumber, pageSize, moviePage.getTotalElements(), moviePage.getTotalPages(), moviePage.isLast());
+
+    }
+
+    @Override
+    public MoviePageResponse getAllMovieWithPaginationAndSorting(Integer pageNumber, Integer pageSize, String sortBy, String sortDirection) {
+        Sort sort = sortDirection.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending() : Sort.by(sortDirection).descending();
+        Pageable pageable = PageRequest.of(pageNumber, pageSize, sort);
+        Page<Movie> moviePage = movieRepository.findAll(pageable);
+        List<Movie> movies = moviePage.getContent();
+
+        List<MovieDto> movieDtos = new ArrayList<>();
+        for (Movie movie : movies) {
+            String posterUrl = baseUrl + "/files/" + movie.getPoster();
+            MovieDto movieDto = new MovieDto(
+                    movie.getId(),
+                    movie.getTitle(),
+                    movie.getDirectory(),
+                    movie.getStudio(),
+                    movie.getMovieCast(),
+                    movie.getReleaseYear(),
+                    movie.getPoster(),
+                    posterUrl
+            );
+            movieDtos.add(movieDto);
+        }
+        return new MoviePageResponse(movieDtos, pageNumber, pageSize, moviePage.getTotalElements(), moviePage.getTotalPages(), moviePage.isLast());
+    }
+
 }
