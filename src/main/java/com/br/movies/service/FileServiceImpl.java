@@ -12,17 +12,17 @@ import java.nio.file.StandardCopyOption;
 public class FileServiceImpl implements FileService {
     @Override
     public String uploadFile(String path, MultipartFile file) throws IOException {
-        // get name of the file
+
         String fileName = file.getOriginalFilename();
-        // to get the file path
+
         String filePath = path + File.separator + fileName;
 
-        // create a file object
+
         File f = new File(path);
         if (!f.exists()) {
             f.mkdirs();
         }
-        // copy  file or upload  file to path
+
         Files.copy(file.getInputStream(), Paths.get(filePath));
         return fileName;
     }
