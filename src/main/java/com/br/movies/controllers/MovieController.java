@@ -2,8 +2,10 @@ package com.br.movies.controllers;
 
 
 import com.br.movies.dto.MovieDto;
+import com.br.movies.dto.MoviePageResponse;
 import com.br.movies.exceptions.FileEmptyException;
 import com.br.movies.service.MovieService;
+import com.br.movies.utils.AppConstants;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -68,4 +70,19 @@ public class MovieController {
         return  ResponseEntity.ok(movieService.deleteMovie(id));
     }
 
+    @GetMapping("movies-pagination")
+    public ResponseEntity<MoviePageResponse> getMoviesWithPagination(@RequestParam(defaultValue = AppConstants.PAGE_NUMBER, required = false) Integer pageNumber,
+                                                                     @RequestParam(defaultValue = AppConstants.PAGE_SIZE, required = false) Integer pageSize){
+        return ResponseEntity.ok(movieService.getAllMovieWithPagination(pageNumber, pageSize));
+    }
+
+    @GetMapping("movies-sort")
+    public ResponseEntity<MoviePageResponse> getAllMovieWithPaginationAndSorting(@RequestParam(defaultValue = AppConstants.PAGE_NUMBER, required = false) Integer pageNumber,
+                                                                                 @RequestParam(defaultValue = AppConstants.PAGE_SIZE, required = false) Integer pageSize,
+                                                                                 @RequestParam(defaultValue = AppConstants.SORT_BY,required = false) String sortBy,
+    @RequestParam(defaultValue = AppConstants.SORT_DIRECTION,required = false)String sortDirection) {
+
+        return  ResponseEntity.ok(movieService.getAllMovieWithPaginationAndSorting(pageNumber, pageSize, sortBy, sortDirection));
+
+    }
 }
